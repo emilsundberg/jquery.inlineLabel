@@ -1,7 +1,7 @@
 /* jquery.alignTo - License https://github.com/Znarkus/jquery.inlineLabel */
 
 (function ($) {
-	
+
 	function _disable_selection($elements) {
 		var $e;
 		return $elements.each(function() { 
@@ -67,7 +67,7 @@
 		});
 		
 		_copy_css_properties($input, $label, properties);
-		
+
 		if (options && options.css) {
 			$label.css(options.css);
 		}
@@ -75,7 +75,7 @@
 	
 	function _position_label($label, $input) {
 		var pos;
-		
+
 		$label.css({
 			position: 'absolute',
 			width: $input.width() + 'px',
@@ -83,7 +83,7 @@
 		});
 		
 		pos = $input.position();
-		
+
 		$label.css({
 			left: pos.left + 'px',
 			top: pos.top + 'px'
@@ -112,24 +112,24 @@
 		})*/;
 	}
 	
-	function _label_show_invisibly($label) {
+	function _label_show_invisibly($label, options) {
 		if ($label.is(':hidden')) {
 			$label.css('opacity', 0).show();
 		}
 	}
 	
-	function _label_tone_down($label) {
-		_label_show_invisibly($label);
-		$label.stop().animate({ opacity: 0.2 }, 100);
+	function _label_tone_down($label, options) {
+		_label_show_invisibly($label, options);
+        $label.stop().animate({ opacity: options.focusOpacity }, options.duration);
 	}
 	
-	function _label_activate($label) {
-		_label_show_invisibly($label);
-		$label.stop().animate({ opacity: 0.5 }, 100);
+	function _label_activate($label, options) {
+		_label_show_invisibly($label, options);
+		$label.stop().animate({ opacity: options.activeOpacity }, options.duration);
 	}
 	
-	function _label_hide($label) {
-		$label.stop().css('opacity', 0.5).hide();
+	function _label_hide($label, options) {
+        $label.stop().animate({ opacity: 0 }, (options.duration/2));
 	}
 	
 	function _hidden($e) {
@@ -137,17 +137,17 @@
 	}
 	
 	function _check_input_value($input, $label, options) {
-		if (_hidden($input)) {
-			_label_hide($label);
+        if (_hidden($input)) {
+			_label_hide($label, options);
 		} else if ($.trim($input.val()) !== '') {
-			_label_hide($label);
+			_label_hide($label, options);
 		} else {
 			if (options && options.override_focus) {
-				_label_tone_down($label);
+				_label_tone_down($label, options);
 			} else if ($input.is(':focus')) {
-				_label_tone_down($label);
+				_label_tone_down($label, options);
 			} else {
-				_label_activate($label);
+				_label_activate($label, options);
 			}
 		}
 	}
@@ -162,8 +162,14 @@
 	
 	function InlineLabel($label, options) {
 		var $input = _labels_input($label);
-		
-		if (_input_in_label($label)) {
+
+        if (options) {
+            options = $.extend({},$.inlineLabel.defaultOptions, options);
+        } else {
+            options = $.inlineLabel.defaultOptions;
+        }
+
+        if (_input_in_label($label)) {
 			$label = $('span', $label);
 		}
 		
@@ -174,21 +180,21 @@
 		$input.focus(function () {
 			// Must override focus detection, because $input
 			// actually doesn't have focus yet
-			_check_input_value($input, $label, { override_focus: true });
+			_check_input_value($input, $label, options);
 			
 		}).blur(function () {
-			_check_input_value($input, $label);
+			_check_input_value($input, $label, options);
 			
 		// Quickly hide label on key down..
 		}).keydown(function (e) {
 			// Skip tab, shift, alt and ctrl
 			if (!_special_key(e)) {
-				_label_hide($label);
+				_label_hide($label, options);
 			}
 			
 		// ..then check value and correct if we made a mistake
 		}).keyup(function () {
-			_check_input_value($input, $label);
+			_check_input_value($input, $label, options);
 			
 		});
 		
@@ -197,7 +203,7 @@
 		setTimeout(function () {
 			// Don't show if it is set to be hidden (with external JS or whatnot)
 			//var was_hidden = $label.css('display') === 'hidden' || !$label.width() || !$label.height();
-			_check_input_value($input, $label);
+			_check_input_value($input, $label, options);
 			
 			/*if (was_hidden) {
 				$label.hide();
@@ -215,8 +221,8 @@
 			}
 		};
 	}
-	
-	var _inline_labels = [];
+
+    var _inline_labels = [];
 	
 	$.fn.inlineLabel = function (options) {
 		return this.each(function () {
@@ -235,7 +241,14 @@
 			});
 		}
 	};
-	
+
+    $.inlineLabel.defaultOptions = {
+        activeOpacity: 0.8,
+        focusOpacity: 0.5,
+        duration: 300,
+        override_focus: true
+    };
+
 	var _resize_timer;
 	
 	$(window).resize(function () {
